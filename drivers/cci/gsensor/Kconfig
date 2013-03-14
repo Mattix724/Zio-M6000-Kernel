@@ -1,0 +1,3 @@
+config CCI_KB60_GS_WKUP_SRC
+	tristate "KB60 G-sensor wakeup src"
+	default n

@@ -1,0 +1,4 @@
+config CCI_ORIENTATION_SENSOR
+        tristate "YAMAHA orientation sensor driver"
+        default y
+        depends on I2C

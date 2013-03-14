@@ -1,0 +1,3 @@
+config CCI_LEDS_KB60
+	tristate "KB60 LED"
+	default y

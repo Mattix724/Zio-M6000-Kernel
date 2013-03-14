@@ -1,0 +1,3 @@
+config CCI_RECOVERY_MODE
+	tristate "set recovery mode on KB60"
+	default y

@@ -1,0 +1,66 @@
+#Android makefile to build kernel as a part of Android Build
+
+ifeq ($(TARGET_PREBUILT_KERNEL),)
+
+KERNEL_OUT := $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ
+KERNEL_CONFIG := $(KERNEL_OUT)/.config
+TARGET_PREBUILT_INT_KERNEL := $(KERNEL_OUT)/arch/arm/boot/zImage
+KERNEL_DEFCONFIG_FILE := `pwd`/kernel/arch/arm/configs/$(KERNEL_DEFCONFIG)
+ifeq ($(TARGET_USES_UNCOMPRESSED_KERNEL),true)
+$(info Using uncompressed kernel)
+TARGET_PREBUILT_KERNEL := $(KERNEL_OUT)/piggy
+else
+TARGET_PREBUILT_KERNEL := $(TARGET_PREBUILT_INT_KERNEL)
+endif
+
+$(KERNEL_OUT):
+	mkdir -p $(KERNEL_OUT)
+
+$(KERNEL_CONFIG): $(KERNEL_OUT)
+	$(MAKE) -C kernel O=../$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi- $(KERNEL_DEFCONFIG)
+
+$(KERNEL_OUT)/piggy : $(TARGET_PREBUILT_INT_KERNEL)
+	$(hide) gunzip -c $(KERNEL_OUT)/arch/arm/boot/compressed/piggy > $(KERNEL_OUT)/piggy
+
+$(TARGET_PREBUILT_INT_KERNEL): CONFIG_DIE_NUMBER $(KERNEL_OUT) $(KERNEL_CONFIG)
+	$(MAKE) -C kernel O=../$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi-
+	$(MAKE) -C kernel O=../$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi- modules
+	mkdir -p $(KERNEL_OUT)/../../system/etc/
+	cp $(KERNEL_OUT)/../system/wlan/broadcom/src/dhd.ko $(KERNEL_OUT)/../../system/etc/dhd.ko
+	cp $(KERNEL_OUT)/drivers/mmc/host/wifi_msm_sdcc.ko $(KERNEL_OUT)/../../system/etc/wifi_msm_sdcc.ko
+
+kerneltags: $(KERNEL_OUT) $(KERNEL_CONFIG)
+	$(MAKE) -C kernel O=../$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi- tags
+
+kernelconfig: CONFIG_DIE_NUMBER $(KERNEL_OUT) $(KERNEL_CONFIG)
+	env KCONFIG_NOTIMESTAMP=true \
+	     $(MAKE) -C kernel O=../$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi- menuconfig
+	cp $(KERNEL_OUT)/.config kernel/arch/arm/configs/$(KERNEL_DEFCONFIG)
+
+CONFIG_DIE_NUMBER:
+ifeq ($(TARGET_KB60_MICRON_4G2G_1DIE),true)
+	@echo "$(KERNEL_DEFCONFIG): Set CONFIG_DDR_RAM_ONE_DIE"
+	@sed -i 's/CONFIG_DDR_RAM_TWO_DIE=y/# CONFIG_DDR_RAM_TWO_DIE is not set/g' $(KERNEL_DEFCONFIG_FILE)
+	@sed -i 's/# CONFIG_DDR_RAM_ONE_DIE is not set/CONFIG_DDR_RAM_ONE_DIE=y/g' $(KERNEL_DEFCONFIG_FILE)
+	@sed -i 's/CONFIG_PHYS_OFFSET=0x18400000/CONFIG_PHYS_OFFSET=0x00400000/g' $(KERNEL_DEFCONFIG_FILE)
+else ifeq ($(TARGET_KB60_MICRON),true)
+	@echo "$(KERNEL_DEFCONFIG): Set CONFIG_DDR_RAM_TWO_DIE"
+	@sed -i 's/# CONFIG_DDR_RAM_TWO_DIE is not set/CONFIG_DDR_RAM_TWO_DIE=y/g'  $(KERNEL_DEFCONFIG_FILE)
+	@sed -i 's/CONFIG_DDR_RAM_ONE_DIE=y/# CONFIG_DDR_RAM_ONE_DIE is not set/g'  $(KERNEL_DEFCONFIG_FILE)
+	@sed -i 's/CONFIG_PHYS_OFFSET=0x00400000/CONFIG_PHYS_OFFSET=0x18400000/g' $(KERNEL_DEFCONFIG_FILE)
+endif
+
+endif
+	@sed -i -e'/CONFIG_CCI_ANDROID_AVAILABLE_RAM=/s/[0-9][0-9][0-9]/$(TARGET_KB62_ANDROID_AVAILABLE_RAM)/g' $(KERNEL_DEFCONFIG_FILE)
+
+ifeq ($(CCI_SECURE_MODE),true)
+	@echo "$(KERNEL_DEFCONFIG): set CONFIG_CCI_SECURE_MODE"
+	@sed -i 's/# CONFIG_CCI_SECURE_MODE is not set/CONFIG_CCI_SECURE_MODE=y/g' $(KERNEL_DEFCONFIG_FILE)
+	@sed -i 's/CONFIG_SERIAL_MSM_CONSOLE=y/# CONFIG_SERIAL_MSM_CONSOLE is not set/g' $(KERNEL_DEFCONFIG_FILE)
+	@sed -i 's/CONFIG_SERIAL_MSM_CLOCK_CONTROL=y/# CONFIG_SERIAL_MSM_CLOCK_CONTROL is not set/g' $(KERNEL_DEFCONFIG_FILE)
+else
+	@echo "$(KERNEL_DEFCONFIG): unset CONFIG_CCI_SECURE_MODE"
+	@sed -i 's/CONFIG_CCI_SECURE_MODE=y/# CONFIG_CCI_SECURE_MODE is not set/g' $(KERNEL_DEFCONFIG_FILE)
+	@sed -i 's/# CONFIG_SERIAL_MSM_CONSOLE is not set/CONFIG_SERIAL_MSM_CONSOLE=y/g' $(KERNEL_DEFCONFIG_FILE)
+	@sed -i 's/# CONFIG_SERIAL_MSM_CLOCK_CONTROL is not set/CONFIG_SERIAL_MSM_CLOCK_CONTROL=y/g' $(KERNEL_DEFCONFIG_FILE)
+endif

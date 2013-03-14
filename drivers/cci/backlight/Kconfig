@@ -1,0 +1,3 @@
+config CCI_BACKLIGHT
+	tristate "Backlight controller for KB60"
+	default y

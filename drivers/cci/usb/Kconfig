@@ -1,0 +1,3 @@
+config CCI_USB
+	tristate "USB Internet Sharing function call for AB60"
+	default y

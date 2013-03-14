@@ -1,0 +1,20 @@
+config CCI_ACCELERATION_SENSOR
+        tristate "YAMAHA acceleration sensor driver"
+        default y
+        depends on I2C
+
+config INPUT_ACCELERATION_SENSOR_POSITION 
+	int "ACCELERATION_SENSOR (KXTE9) Mounting Position on Board" 
+	depends on CCI_ACCELERATION_SENSOR
+	default "0" 
+	help 
+		Chip mounting position (pin 1). 
+		0: top, upper-left 
+		1: top, upper-right 
+		2: top, lower-right 
+		3: top, lower-left 
+		4: bottom, upper-left 
+		5: bottom, upper-right 
+		6: bottom, lower-right 
+		7: bottom, lower-left     
+

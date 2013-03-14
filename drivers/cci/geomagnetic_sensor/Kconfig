@@ -1,0 +1,19 @@
+config CCI_GEOMAGNETIC_SENSOR
+        tristate "YAMAHA geomagnetic sensor driver"
+        default y
+        depends on I2C
+        
+config INPUT_GEOMAGNETIC_SENSOR_POSITION 
+	int "GEOMAGNETIC_SENSOR (YAS529) Mounting Position on Board"   
+	depends on CCI_GEOMAGNETIC_SENSOR 
+	default "1" 
+	help 
+		Chip mounting position (pin 1). 
+		0: top, upper-left 
+		1: top, upper-right 
+		2: top, lower-right 
+		3: top, lower-left 
+		4: bottom, upper-left 
+		5: bottom, upper-right 
+		6: bottom, lower-right 
+		7: bottom, lower-left
